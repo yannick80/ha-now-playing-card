@@ -39,6 +39,9 @@
   .phone { width: 343px; }
   #log { font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; color: var(--secondary-text-color); max-height: 160px; overflow: auto; }
   .tools button { margin-right: 8px; }
+  /* ?readme: only the cards, for docs/preview.png */
+  body.readme .tools, body.readme h2, body.readme #log, body.readme #c-missing { display: none; }
+  body.readme { padding: 16px 0 0 16px; }
 </style>
 </head>
 <body>
@@ -164,6 +167,8 @@
 </script>
 <script src="../dist/now-playing-card.js"></script>
 <script>
+  if (/readme/.test(location.search)) document.body.classList.add("readme");
+  if (/dark/.test(location.search)) document.body.classList.add("dark");
   add("c-playing", { entity: "media_player.buro" });
   add("c-paused", { entity: "media_player.kueche" });
   add("c-phone", { entity: "media_player.buro" });

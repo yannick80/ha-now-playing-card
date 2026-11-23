@@ -7,6 +7,8 @@ has a **large volume slider** that is easy to hit on small displays.
 It replaces the combination of the built-in `media-control` card and a `tile`
 card with the `media-player-volume-slider` feature.
 
+![The card playing with cover, paused and muted, on a phone-sized column, without cover, off, idle and unavailable](docs/preview.png)
+
 ## What you get
 
 - **Cover as background** of the whole card, darkened so the text stays readable.
@@ -65,7 +67,8 @@ follows the content.
 - Tests: `node --test tests/*.mjs` (no npm dependencies).
 - Visual check: serve the repository root (`python3 -m http.server`) and open
   `docs/preview.html`. It mocks `ha-card` and Home Assistant and logs every
-  service call.
+  service call. `docs/preview.png` is that page with `?readme`, rendered with
+  headless Chrome at 1050×500 and device scale factor 2.
 - Release: bump `VERSION` in the card and the CHANGELOG, tag `vX.Y.Z`, publish a
   GitHub release. The release workflow attaches the card file.
 
