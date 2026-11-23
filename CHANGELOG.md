@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
+## 1.1.0
+
 ### Changed
 - The cover is no longer stretched to the card's width and cropped. It sits on
   the right in full height; the rest of the card takes the colour of the
