@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
+## 1.2.0
+
 ### Changed
 - The card is now three grid rows high (at least 182 px outside the sections
   grid) instead of following its content, so the dashboard no longer jumps

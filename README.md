@@ -111,7 +111,7 @@ While playing, a thin line along the bottom edge shows the progress. The current
 2. Copy it to `config/www/now-playing-card.js` (the `www` folder next to `configuration.yaml`; create it if it does not exist).
 3. Go to **Settings** > **Dashboards**, select the three dots, then **Resources**.
    (No **Resources** entry? Turn on **Advanced mode** in your user profile first.)
-4. Select **Add resource**, enter `/local/now-playing-card.js?v=1.1.0`, choose **JavaScript module** and select **Create**.
+4. Select **Add resource**, enter `/local/now-playing-card.js?v=1.2.0`, choose **JavaScript module** and select **Create**.
    Raise the `?v=` number after each update so browsers load the new file.
 5. Reload the browser.
 <!-- ha-marketplace:exclude-end -->
@@ -180,7 +180,7 @@ The card only shows controls the player reports in its `supported_features`. The
 
 ### The card still shows the old version after an update
 
-Reload the browser with the cache cleared. The browser console (F12) shows the loaded version as `now-playing-card 1.1.0`.
+Reload the browser with the cache cleared. The browser console (F12) shows the loaded version as `now-playing-card 1.2.0`.
 
 ## Getting help
 
