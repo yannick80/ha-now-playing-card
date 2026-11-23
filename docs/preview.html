@@ -96,11 +96,16 @@
   const ALL = 1 | 4 | 8 | 16 | 32 | 128 | 256 | 4096 | 16384;
   const now = () => new Date().toISOString();
 
+  // ?en renders the English interface, default is German
+  const LANG = /(^|[?&])en(&|$)/.test(location.search.slice(1)) ? "en" : "de";
+  const LABELS = {
+    de: { off: "Aus", idle: "Untätig", paused: "Pausiert", playing: "Spielt", unavailable: "Nicht verfügbar", on: "An" },
+    en: { off: "Off", idle: "Idle", paused: "Paused", playing: "Playing", unavailable: "Unavailable", on: "On" },
+  }[LANG];
   let hass = {
-    language: "de",
-    locale: { language: "de" },
-    formatEntityState: (s) => ({ off: "Aus", idle: "Untätig", paused: "Pausiert", playing: "Spielt",
-      unavailable: "Nicht verfügbar", on: "An" })[s.state] || s.state,
+    language: LANG,
+    locale: { language: LANG },
+    formatEntityState: (s) => LABELS[s.state] || s.state,
     states: {
       "media_player.buro": { entity_id: "media_player.buro", state: "playing", attributes: {
         friendly_name: "Büro", supported_features: ALL, volume_level: 0.35, is_volume_muted: false,

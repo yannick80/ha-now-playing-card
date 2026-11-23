@@ -1,0 +1,52 @@
+name: Bug report
+description: The card shows something wrong, shows an error or does not load.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If the media player itself shows wrong values (title, cover, volume) on its own entity page,
+        that is a topic for the integration of your player, not for the card.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: card_version
+    attributes:
+      label: Card version
+      description: Shown in the browser console (F12) as `now-playing-card x.y.z`.
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+    validations:
+      required: true
+  - type: input
+    id: player
+    attributes:
+      label: Media player and integration
+      placeholder: e.g. Sonos One (Sonos), Spotify Connect, Music Assistant
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser or app
+      placeholder: e.g. Chrome 131, HA Companion app on iOS, wall tablet
+  - type: textarea
+    id: yaml
+    attributes:
+      label: Card YAML
+      render: yaml
+  - type: textarea
+    id: states
+    attributes:
+      label: Entity attributes and screenshot
+      description: >
+        A screenshot of the card, and the media player's attributes from
+        Developer tools > States (supported_features, volume_level, media_title, …).

@@ -24,6 +24,9 @@ slider), distributed through HACS as a **Dashboard** (plugin) repository.
 dist/now-playing-card.js    the card (single file, no build step, no deps)
 tests/card.test.mjs         node tests (vm + minimal DOM stub)
 docs/preview.html           mocked ha-card + hass, all states, service log
+                            (?readme cards only, ?en English, ?dark)
+docs/render-previews.sh     renders docs/preview.png (en) and preview-de.png
+.github/ISSUE_TEMPLATE/     bug report, feature request
 hacs.json                   HACS metadata (filename, min. HA version)
 .github/workflows/          validate.yml (HACS, syntax, tests), release.yml
 README.md, CHANGELOG.md, LICENSE

@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest something the card should show or do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The card is meant to stay small. Ideas that make it easier to use are welcome;
+        for a card with every option, mini-media-player is a good choice.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like the card to do?
+    validations:
+      required: true
+  - type: input
+    id: player
+    attributes:
+      label: Media player and integration it is about
