@@ -104,14 +104,6 @@ function stateLabel(hass, stateObj) {
   return stateObj.state;
 }
 
-function fmtTime(seconds) {
-  const s = Math.max(0, Math.floor(seconds));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const pad = (n) => String(n).padStart(2, "0");
-  return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
-}
-
 // Current position in seconds, extrapolated while playing
 function mediaPosition(stateObj, now) {
   const a = stateObj.attributes;
@@ -138,63 +130,57 @@ const STYLE = `
     display: block;
   }
   ha-card {
+    position: relative;
     height: 100%;
     box-sizing: border-box;
     overflow: hidden;
   }
+  .bg {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-size: cover;
+    background-position: center;
+  }
+  .bg::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.35));
+  }
   .root {
+    position: relative;
     padding: 12px;
+    color: var(--primary-text-color, #212121);
+  }
+  .root.art {
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   }
   .head {
     display: flex;
     align-items: center;
-    border-radius: 8px;
-    cursor: pointer;
-    outline: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .head:focus-visible {
-    box-shadow: 0 0 0 2px var(--primary-color);
-  }
-  .art {
-    position: relative;
-    flex: 0 0 auto;
-    width: 72px;
-    height: 72px;
-    margin-right: 12px;
-    border-radius: 8px;
-    overflow: hidden;
-    background: var(--secondary-background-color, #eeeeee);
-    color: var(--secondary-text-color, #727272);
-  }
-  .img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .ph {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-  }
-  .ph svg {
-    width: 32px;
-    height: 32px;
-    fill: currentColor;
-    opacity: 0.6;
   }
   .info {
     flex: 1 1 auto;
     min-width: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .info:focus-visible {
+    box-shadow: 0 0 0 2px var(--primary-color);
   }
   .title {
     font-size: 16px;
     font-weight: 500;
     line-height: 22px;
-    color: var(--primary-text-color, #212121);
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
@@ -208,6 +194,11 @@ const STYLE = `
     text-overflow: ellipsis;
     color: var(--secondary-text-color, #727272);
   }
+  .root.art .artist,
+  .root.art .meta,
+  .root.art .pct {
+    color: rgba(255, 255, 255, 0.8);
+  }
   .artist {
     font-size: 14px;
     line-height: 20px;
@@ -216,38 +207,14 @@ const STYLE = `
     font-size: 12px;
     line-height: 18px;
   }
-  .progress {
-    margin-top: 10px;
-  }
-  .bar {
-    height: 4px;
-    border-radius: 2px;
-    overflow: hidden;
-    background: rgba(127, 127, 127, 0.25);
-    background: color-mix(in srgb, var(--primary-text-color) 15%, transparent);
-  }
-  .pfill {
-    height: 100%;
-    width: 0;
-    background: var(--primary-color, #03a9f4);
-  }
-  .times {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 2px;
-    font-size: 11px;
-    line-height: 14px;
-    color: var(--secondary-text-color, #727272);
-    font-variant-numeric: tabular-nums;
-  }
   .controls {
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin-top: 8px;
+    margin-left: 8px;
   }
   .controls .btn {
-    margin: 0 8px;
+    margin-left: 2px;
   }
   .btn {
     box-sizing: border-box;
@@ -255,22 +222,26 @@ const STYLE = `
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     padding: 0;
     border: none;
     border-radius: 50%;
     background: transparent;
-    color: var(--primary-text-color, #212121);
+    color: inherit;
     font: inherit;
     cursor: pointer;
     outline: none;
     -webkit-tap-highlight-color: transparent;
   }
   .btn svg {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     fill: currentColor;
+  }
+  .root.art .btn:not(.main) svg {
+    -webkit-filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
   }
   .btn:focus-visible {
     box-shadow: 0 0 0 2px var(--primary-color);
@@ -280,33 +251,27 @@ const STYLE = `
     cursor: default;
   }
   .btn.main {
-    width: 52px;
-    height: 52px;
+    width: 40px;
+    height: 40px;
     background: var(--primary-color, #03a9f4);
     color: var(--text-primary-color, #ffffff);
   }
   .btn.main svg {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
   }
   @media (hover: hover) {
     .btn:not(.main):not(:disabled):hover {
-      background: rgba(127, 127, 127, 0.15);
+      background: rgba(127, 127, 127, 0.2);
     }
   }
   .volume {
     display: flex;
     align-items: center;
-    margin-top: 8px;
+    margin-top: 10px;
   }
   .volume .btn {
-    width: 40px;
-    height: 40px;
-    margin-right: 8px;
-  }
-  .volume .btn svg {
-    width: 24px;
-    height: 24px;
+    margin-right: 6px;
   }
   .slider {
     position: relative;
@@ -322,6 +287,9 @@ const STYLE = `
     -webkit-tap-highlight-color: transparent;
     background: rgba(3, 169, 244, 0.2);
     background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+  }
+  .root.art .slider {
+    background: rgba(255, 255, 255, 0.25);
   }
   .slider:focus-visible {
     box-shadow: 0 0 0 2px var(--primary-color);
@@ -358,38 +326,54 @@ const STYLE = `
   }
   .pct {
     flex: 0 0 auto;
-    width: 48px;
-    margin-left: 8px;
+    width: 44px;
+    margin-left: 6px;
     text-align: right;
     font-size: 14px;
     color: var(--secondary-text-color, #727272);
     font-variant-numeric: tabular-nums;
+  }
+  .progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(127, 127, 127, 0.25);
+    background: color-mix(in srgb, var(--primary-text-color) 15%, transparent);
+  }
+  .progress.art {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  .pfill {
+    height: 100%;
+    width: 0;
+    background: var(--primary-color, #03a9f4);
   }
   [hidden] {
     display: none !important;
   }
 `;
 
+// The <img> is never shown: it only loads the cover so a broken URL can be
+// detected; the cover itself is the background of .bg.
 const TEMPLATE = `
 <ha-card>
+  <div class="bg" hidden></div>
+  <img class="img" alt="" hidden>
   <div class="root">
-    <div class="head" role="button" tabindex="0">
-      <div class="art"><img class="img" alt="" hidden><div class="ph">${svg(ICONS.music)}</div></div>
-      <div class="info">
+    <div class="head">
+      <div class="info" role="button" tabindex="0">
         <div class="title"></div>
         <div class="artist"></div>
         <div class="meta"></div>
       </div>
-    </div>
-    <div class="progress">
-      <div class="bar"><div class="pfill"></div></div>
-      <div class="times"><span class="pos"></span><span class="dur"></span></div>
-    </div>
-    <div class="controls">
-      <button class="btn power" type="button">${svg(ICONS.power)}</button>
-      <button class="btn prev" type="button">${svg(ICONS.prev)}</button>
-      <button class="btn main play" type="button"></button>
-      <button class="btn next" type="button">${svg(ICONS.next)}</button>
+      <div class="controls">
+        <button class="btn power" type="button">${svg(ICONS.power)}</button>
+        <button class="btn prev" type="button">${svg(ICONS.prev)}</button>
+        <button class="btn main play" type="button"></button>
+        <button class="btn next" type="button">${svg(ICONS.next)}</button>
+      </div>
     </div>
     <div class="volume">
       <button class="btn mute" type="button"></button>
@@ -397,10 +381,11 @@ const TEMPLATE = `
       <div class="pct"></div>
     </div>
   </div>
+  <div class="progress"><div class="pfill"></div></div>
 </ha-card>`;
 
-const PARTS = ["head", "art", "img", "ph", "title", "artist", "meta", "progress", "pfill", "pos", "dur",
-  "controls", "power", "prev", "play", "next", "volume", "mute", "slider", "sfill", "pct"];
+const PARTS = ["bg", "img", "root", "info", "title", "artist", "meta", "controls", "power", "prev", "play", "next",
+  "volume", "mute", "slider", "sfill", "pct", "progress", "pfill"];
 
 class NowPlayingCard extends HTMLElement {
   static getConfigElement() {
@@ -485,8 +470,8 @@ class NowPlayingCard extends HTMLElement {
     });
     this._els = els;
 
-    els.head.addEventListener("click", () => this._moreInfo());
-    els.head.addEventListener("keydown", (ev) => {
+    els.info.addEventListener("click", () => this._moreInfo());
+    els.info.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter" || ev.key === " ") {
         ev.preventDefault();
         this._moreInfo();
@@ -656,20 +641,19 @@ class NowPlayingCard extends HTMLElement {
     e.artist.hidden = !e.artist.textContent;
     e.meta.hidden = !e.meta.textContent;
 
-    // Artwork
-    e.art.hidden = c.show_artwork === false;
-    const pic = off ? "" : a.entity_picture_local || a.entity_picture || "";
+    // Cover as full-card background
+    const pic = off || c.show_artwork === false ? "" : a.entity_picture_local || a.entity_picture || "";
     const url = pic && hass.hassUrl ? hass.hassUrl(pic) : pic;
-    if (url && url !== this._imgFailed) {
-      if (e.img.getAttribute("src") !== url) e.img.setAttribute("src", url);
-      e.img.hidden = false;
-      e.ph.hidden = true;
-    } else {
-      e.img.hidden = true;
-      e.ph.hidden = false;
+    const art = !!url && url !== this._imgFailed;
+    if (art && e.img.getAttribute("src") !== url) {
+      e.img.setAttribute("src", url);
+      e.bg.style.backgroundImage = `url("${url.replace(/["\\\n]/g, "\\$&")}")`;
     }
+    e.bg.hidden = !art;
+    e.root.classList.toggle("art", art);
+    e.progress.classList.toggle("art", art);
 
-    // Progress
+    // Progress: thin line along the bottom edge
     const showProgress = c.show_progress !== false && hasMedia &&
       typeof a.media_duration === "number" && a.media_duration > 0 && typeof a.media_position === "number";
     e.progress.hidden = !showProgress;
@@ -709,8 +693,6 @@ class NowPlayingCard extends HTMLElement {
     const dur = st.attributes.media_duration;
     const pos = mediaPosition(st, Date.now()) || 0;
     e.pfill.style.width = `${Math.round((pos / dur) * 1000) / 10}%`;
-    e.pos.textContent = fmtTime(pos);
-    e.dur.textContent = fmtTime(dur);
   }
 
   _renderVolume(st, off, t) {
@@ -866,6 +848,6 @@ console.info(`%c ${TAG} %c ${VERSION} `, "color:#fff;background:#555;font-weight
 // Test hook: only active when evaluated with a CommonJS-style `module` (node tests)
 if (typeof module !== "undefined" && module && module.exports) {
   module.exports = { NowPlayingCard: NowPlayingCard, NowPlayingCardEditor: NowPlayingCardEditor,
-    fmtTime: fmtTime, mediaPosition: mediaPosition };
+    mediaPosition: mediaPosition };
 }
 })();

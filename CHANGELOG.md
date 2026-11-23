@@ -7,5 +7,6 @@ All notable changes to this project are documented here. The format follows
 ## Unreleased
 
 ## 1.0.0
-Initial release: cover, title, artist and album, progress, play/pause,
-previous/next, power, mute and a large touch-friendly volume slider.
+Initial release: cover as full-card background, title, artist and album,
+play/pause, previous/next and power next to the title, a thin progress line,
+mute and a large touch-friendly volume slider.

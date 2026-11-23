@@ -225,8 +225,7 @@ test("playing: title, artist – album, player · app, progress, controls, volum
   assert.equal(r.artist, "Artist – Album");
   assert.equal(r.meta, "Büro · Spotify");
   assert.equal(r.hidden(".progress"), false);
-  assert.equal(r.q(".dur").textContent, "3:20");
-  assert.match(r.q(".pos").textContent, /^0:5\d$/);
+  assert.match(r.q(".pfill").style.width, /^25(\.\d)?%$/);
   assert.equal(r.hidden(".prev"), false);
   assert.equal(r.hidden(".next"), false);
   assert.equal(r.hidden(".power"), true);
@@ -235,8 +234,9 @@ test("playing: title, artist – album, player · app, progress, controls, volum
   assert.equal(r.pct, "35 %");
   assert.equal(r.q(".sfill").style.width, "35%");
   assert.equal(r.q(".img").getAttribute("src"), PLAYING.entity_picture);
-  assert.equal(r.hidden(".img"), false);
-  assert.equal(r.hidden(".ph"), true);
+  assert.equal(r.hidden(".bg"), false);
+  assert.equal(r.q(".bg").style.backgroundImage, `url("${PLAYING.entity_picture}")`);
+  assert.ok(r.q(".root").classList.contains("art"), "light text on the cover");
 });
 
 test("custom name replaces the friendly name", () => {
@@ -250,7 +250,8 @@ test("show_artwork and show_progress can be switched off", () => {
   const ctx = loadCard();
   const r = render(ctx, { entity: "media_player.buro", show_artwork: false, show_progress: false },
     mkHass({ "media_player.buro": ["playing", PLAYING] }));
-  assert.equal(r.hidden(".art"), true);
+  assert.equal(r.hidden(".bg"), true);
+  assert.equal(r.q(".root").classList.contains("art"), false);
   assert.equal(r.hidden(".progress"), true);
 });
 
@@ -266,7 +267,7 @@ test("off: name and state, only the power button, no volume", () => {
   assert.equal(r.hidden(".prev"), true);
   assert.equal(r.hidden(".volume"), true);
   assert.equal(r.hidden(".progress"), true);
-  assert.equal(r.hidden(".img"), true, "no stale cover while off");
+  assert.equal(r.hidden(".bg"), true, "no stale cover while off");
 });
 
 test("unavailable: no controls at all", () => {
@@ -297,12 +298,20 @@ test("buttons follow supported_features", () => {
   assert.equal(r.q(".play").getAttribute("aria-label"), "Stopp");
 });
 
-test("a broken cover falls back to the placeholder", () => {
+test("a broken cover falls back to the plain card", () => {
   const ctx = loadCard();
   const r = render(ctx, { entity: "media_player.buro" }, mkHass({ "media_player.buro": ["playing", PLAYING] }));
   r.q(".img").fire("error");
-  assert.equal(r.hidden(".img"), true);
-  assert.equal(r.hidden(".ph"), false);
+  assert.equal(r.hidden(".bg"), true);
+  assert.equal(r.q(".root").classList.contains("art"), false);
+});
+
+test("quotes in the cover URL cannot break out of the CSS url()", () => {
+  const ctx = loadCard();
+  const pic = '/x.jpg") ; background: red; ("';
+  const r = render(ctx, { entity: "media_player.buro" },
+    mkHass({ "media_player.buro": ["playing", { ...PLAYING, entity_picture: pic }] }));
+  assert.equal(r.q(".bg").style.backgroundImage, 'url("/x.jpg\\") ; background: red; (\\"")');
 });
 
 test("render errors are shown inside the card instead of throwing", () => {
@@ -335,10 +344,10 @@ test("play/pause, prev, next, mute and power call the right services", () => {
   assert.equal(off.calls[0].service, "turn_on");
 });
 
-test("clicking the head opens more-info", () => {
+test("clicking title or artist opens more-info", () => {
   const ctx = loadCard();
   const r = render(ctx, { entity: "media_player.buro" }, mkHass({ "media_player.buro": ["playing", PLAYING] }));
-  r.q(".head").fire("click");
+  r.q(".info").fire("click");
   const ev = r.card.dispatched.find((e) => e.type === "hass-more-info");
   assert.ok(ev);
   assert.equal(ev.detail.entityId, "media_player.buro");
