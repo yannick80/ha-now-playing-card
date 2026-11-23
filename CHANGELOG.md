@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
+### Changed
+- The card is now three grid rows high (at least 182 px outside the sections
+  grid) instead of following its content, so the dashboard no longer jumps
+  when a title changes between one and two lines. The volume row stays at
+  the bottom.
+
 ## 1.1.0
 
 ### Changed

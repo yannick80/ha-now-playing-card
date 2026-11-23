@@ -12,7 +12,7 @@ trap 'kill $SERVER 2>/dev/null; rm -rf "$TMP"' EXIT
 sleep 1
 shot() {
   "$CHROME" --headless=new --disable-gpu --hide-scrollbars --user-data-dir="$TMP/$1" \
-    --force-device-scale-factor=2 --window-size=1050,500 --virtual-time-budget=2000 \
+    --force-device-scale-factor=2 --window-size=1050,640 --virtual-time-budget=2000 \
     --screenshot="docs/$1.png" "http://127.0.0.1:$PORT/docs/preview.html?readme&$2" >/dev/null 2>&1
   echo "docs/$1.png"
 }

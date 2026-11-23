@@ -215,8 +215,16 @@ const STYLE = `
     left: 0;
     background: linear-gradient(to right, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.25));
   }
+  /* Fixed height of 3 grid rows, so the card does not jump when a title
+     changes between one and two lines; the volume row stays at the bottom. */
   .root {
     position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 182px;
+    min-height: calc(3 * var(--row-height, 56px) + 2 * var(--row-gap, 8px) - 2 * var(--ha-card-border-width, 1px));
     padding: 12px;
     color: var(--primary-text-color, #212121);
   }
@@ -225,6 +233,7 @@ const STYLE = `
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   }
   .head {
+    flex: 1 1 auto;
     display: flex;
     align-items: center;
   }
@@ -328,6 +337,7 @@ const STYLE = `
     }
   }
   .volume {
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     margin-top: 10px;
@@ -506,7 +516,9 @@ class NowPlayingCard extends HTMLElement {
   }
 
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: "auto" };
+    // Fixed 3 rows: the content (two-line title + volume row) fits, and the
+    // height does not change with the track
+    return { columns: 12, min_columns: 6, rows: 3, min_rows: 3 };
   }
 
   _safeUpdate() {

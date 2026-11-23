@@ -50,7 +50,7 @@ It shows what is playing, with the cover on the right in full height and the res
 - **Large volume slider.** Tap anywhere to jump to that volume, or drag. Vertical swipes still scroll the page. The slider keeps your value until Home Assistant confirms it, so it does not jump back.
 - **Only what your player can do.** Buttons the player does not support are left out.
 - **Visual editor.** Search for "Now Playing" in the card picker.
-- **Fits the sections dashboard.** Full width by default, height follows the content; works in the masonry view too.
+- **Fits the sections dashboard.** Full width and three rows high by default. The height stays the same from track to track, so the dashboard does not jump; works in the masonry view too.
 - **No other custom cards needed.** One JavaScript file, no dependencies.
 - **Written for old wall tablets too:** no JavaScript or CSS newer than their WebViews understand.
 

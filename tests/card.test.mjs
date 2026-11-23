@@ -188,6 +188,12 @@ test("every color-mix() has a plain fallback declaration directly before it", ()
   assert.ok(count > 0);
 });
 
+test("the card keeps a minimum height of three grid rows outside the sections grid too", () => {
+  const root = SOURCE.match(/\n  \.root \{[^}]*\}/)[0];
+  // 3 rows of 56 px + 2 gaps of 8 px = 184 px, minus the card's 1 px border top and bottom
+  assert.match(root, /min-height: 182px;\n\s*min-height: calc\(3 \* var\(--row-height, 56px\) \+ 2 \* var\(--row-gap, 8px\) - 2 \* var\(--ha-card-border-width, 1px\)\);/);
+});
+
 test("CSS avoids flex/grid gap and inset", () => {
   assert.doesNotMatch(SOURCE, /^\s*(gap|inset)\s*:/m);
 });
@@ -495,7 +501,8 @@ test("card provides sizes for sections and masonry", () => {
   const card = new (ctx.customElements.get("now-playing-card"))();
   assert.equal(typeof card.getCardSize(), "number");
   assert.equal(card.getGridOptions().columns, 12);
-  assert.equal(card.getGridOptions().rows, "auto");
+  assert.equal(card.getGridOptions().rows, 3, "fixed height, no jumping between tracks");
+  assert.equal(card.getGridOptions().min_rows, 3);
 });
 
 test("getStubConfig prefers a playing media player and never throws", () => {
