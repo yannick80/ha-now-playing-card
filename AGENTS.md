@@ -46,6 +46,10 @@ README.md, CHANGELOG.md, LICENSE
   pan-y`. `pointerdown` only previews (it may become a scroll), moves send
   throttled `volume_set`, release sends the final value once. The user's
   value is kept until HA confirms it or 3 s pass.
+- Cover: `<img>` in full height on the right, never `crossOrigin` on the
+  visible image. Background colour = average of the left edge via a 16×16
+  canvas; tainted canvas -> one CORS probe image -> neutral fallback. Colours
+  are cached per URL and applied only if that URL is still the shown cover.
 - Editor: load `ha-form` via `loadCardHelpers()` before use.
 
 ## Tests

@@ -235,7 +235,6 @@ test("playing: title, artist – album, player · app, progress, controls, volum
   assert.equal(r.q(".sfill").style.width, "35%");
   assert.equal(r.q(".img").getAttribute("src"), PLAYING.entity_picture);
   assert.equal(r.hidden(".bg"), false);
-  assert.equal(r.q(".bg").style.backgroundImage, `url("${PLAYING.entity_picture}")`);
   assert.ok(r.q(".root").classList.contains("art"), "light text on the cover");
 });
 
@@ -306,12 +305,85 @@ test("a broken cover falls back to the plain card", () => {
   assert.equal(r.q(".root").classList.contains("art"), false);
 });
 
-test("quotes in the cover URL cannot break out of the CSS url()", () => {
+// ------------------------------------------------------------ cover colour
+
+// canvas stub: getImageData returns `pixel` for every pixel, or throws (tainted)
+function withCanvas(ctx, pixel) {
+  const make = ctx.document.createElement;
+  ctx.document.createElement = (t) => {
+    if (t !== "canvas") return make(t);
+    return {
+      getContext: () => ({
+        drawImage() {},
+        getImageData(x, y, w, h) {
+          if (!pixel) throw new Error("SecurityError: tainted canvas");
+          const data = [];
+          for (let i = 0; i < w * h; i++) data.push(...pixel);
+          return { data };
+        },
+      }),
+    };
+  };
+}
+
+test("the background takes the colour of the cover's left edge once it has loaded", () => {
   const ctx = loadCard();
-  const pic = '/x.jpg") ; background: red; ("';
+  withCanvas(ctx, [10, 20, 30, 255]);
+  const r = render(ctx, { entity: "media_player.buro" }, mkHass({ "media_player.buro": ["playing", PLAYING] }));
+  assert.equal(r.q(".bg").style.backgroundColor, undefined, "no colour before the cover has loaded");
+  r.q(".img").fire("load");
+  assert.equal(r.q(".bg").style.backgroundColor, "rgb(10, 20, 30)");
+  assert.equal(r.q(".fade").style.backgroundImage, "linear-gradient(to right, rgb(10, 20, 30), rgba(10, 20, 30, 0))");
+});
+
+test("a new cover brings a new colour; a known cover gets it immediately", () => {
+  const ctx = loadCard();
+  withCanvas(ctx, [10, 20, 30, 255]);
+  const r = render(ctx, { entity: "media_player.buro" }, mkHass({ "media_player.buro": ["playing", PLAYING] }));
+  r.q(".img").fire("load");
+  withCanvas(ctx, [200, 100, 50, 255]);
+  r.card.hass = mkHass({ "media_player.buro": ["playing", { ...PLAYING, entity_picture: "/b.jpg" }] });
+  assert.equal(r.q(".bg").style.backgroundColor, "rgb(10, 20, 30)", "old colour stays while the new cover loads");
+  r.q(".img").fire("load");
+  assert.equal(r.q(".bg").style.backgroundColor, "rgb(200, 100, 50)");
+  r.card.hass = mkHass({ "media_player.buro": ["playing", PLAYING] });
+  assert.equal(r.q(".bg").style.backgroundColor, "rgb(10, 20, 30)", "cached colour, no reload needed");
+});
+
+test("a late colour for a cover that is no longer shown is ignored", () => {
+  const ctx = loadCard();
+  const probes = [];
+  const make = ctx.document.createElement;
+  withCanvas(ctx, null); // tainted -> CORS probe
+  const viaCanvas = ctx.document.createElement;
+  ctx.document.createElement = (t) => { const el = viaCanvas(t); if (t === "img") probes.push(el); return el; };
+  const r = render(ctx, { entity: "media_player.buro" }, mkHass({ "media_player.buro": ["playing", PLAYING] }));
+  r.q(".img").fire("load");
+  assert.equal(probes.length, 1);
+  r.card.hass = mkHass({ "media_player.buro": ["playing", { ...PLAYING, entity_picture: "/b.jpg" }] });
+  ctx.document.createElement = make;
+  withCanvas(ctx, [1, 2, 3, 255]);
+  probes[0].fire("load"); // colour of the old cover arrives late
+  assert.equal(r.q(".bg").style.backgroundColor, undefined);
+});
+
+test("an unreadable cross-origin cover is retried with CORS, then falls back to neutral", () => {
+  const ctx = loadCard();
+  withCanvas(ctx, null);
+  const probes = [];
+  const viaCanvas = ctx.document.createElement;
+  ctx.document.createElement = (t) => { const el = viaCanvas(t); if (t === "img") probes.push(el); return el; };
+  const pic = "https://cdn.example.com/cover.jpg";
   const r = render(ctx, { entity: "media_player.buro" },
     mkHass({ "media_player.buro": ["playing", { ...PLAYING, entity_picture: pic }] }));
-  assert.equal(r.q(".bg").style.backgroundImage, 'url("/x.jpg\\") ; background: red; (\\"")');
+  r.q(".img").fire("load");
+  assert.equal(probes.length, 1);
+  assert.equal(probes[0].crossOrigin, "anonymous");
+  assert.equal(probes[0].getAttribute("src"), pic);
+  assert.equal(r.q(".img").crossOrigin, undefined, "the visible cover never needs CORS");
+  probes[0].fire("error");
+  assert.equal(r.q(".bg").style.backgroundColor, "");
+  assert.equal(r.q(".fade").style.backgroundImage, "");
 });
 
 test("render errors are shown inside the card instead of throwing", () => {

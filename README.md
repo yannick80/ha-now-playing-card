@@ -24,7 +24,7 @@
 # Now Playing Card
 
 A compact Home Assistant dashboard card for a media player.
-It shows what is playing, with the cover as the card's background, and has a **large volume slider** that is easy to hit on small displays.
+It shows what is playing, with the cover on the right in full height and the rest of the card in a matching colour, and has a **large volume slider** that is easy to hit on small displays.
 
 ![The card playing with cover, paused and muted, in a phone-sized column, without cover, off, idle and unavailable](docs/preview.png)
 
@@ -46,7 +46,7 @@ It shows what is playing, with the cover as the card's background, and has a **l
 ## What you get
 
 - **One card instead of two.** Replaces the built-in `media-control` card plus a `tile` card with the `media-player-volume-slider` feature.
-- **Cover as background.** It fills the whole card, darkened so the text stays readable. Without a cover the card uses your theme's colours.
+- **Cover as background.** The cover sits on the right in full height, never stretched or cropped; the rest of the card takes the colour of the cover's left edge and changes with every track. A dark gradient keeps the text readable. Without a cover the card uses your theme's colours.
 - **Large volume slider.** Tap anywhere to jump to that volume, or drag. Vertical swipes still scroll the page. The slider keeps your value until Home Assistant confirms it, so it does not jump back.
 - **Only what your player can do.** Buttons the player does not support are left out.
 - **Visual editor.** Search for "Now Playing" in the card picker.
@@ -135,7 +135,7 @@ entity: media_player.office
 |---|---|---|
 | `entity` | – | The `media_player` entity (required) |
 | `name` | the entity's friendly name | Player name in the third line |
-| `show_artwork` | `true` | Cover as card background |
+| `show_artwork` | `true` | Cover and matching background colour |
 | `show_progress` | `true` | Progress line along the bottom edge |
 
 ### Full example
@@ -169,6 +169,10 @@ Pick the player in the card editor. "Media player not found" means the entity ID
 ### No cover is shown
 
 The card uses the entity's `entity_picture`. Check the player under **Developer tools** > **States**: if there is no `entity_picture`, the integration does not provide a cover for what is playing. Radio streams often have none.
+
+### The background stays dark grey instead of matching the cover
+
+The card reads the colour from the cover image. Covers served by Home Assistant itself always work. A cover loaded directly from another server (some integrations do that) can only be read if that server allows it (CORS); otherwise the card uses a neutral dark grey. The cover itself is shown either way.
 
 ### No volume slider, or buttons are missing
 

@@ -125,6 +125,45 @@ function svg(path) {
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"></path></svg>`;
 }
 
+// cover URL -> [r, g, b] of its left edge, shared by all cards
+const COLOR_CACHE = {};
+const COLOR_CACHE_MAX = 50;
+
+function rememberColor(url, rgb) {
+  if (!COLOR_CACHE[url]) {
+    const keys = Object.keys(COLOR_CACHE);
+    if (keys.length >= COLOR_CACHE_MAX) delete COLOR_CACHE[keys[0]];
+  }
+  COLOR_CACHE[url] = rgb;
+}
+
+// Average colour of the image's left edge, or null if it cannot be read
+// (e.g. a cross-origin cover without CORS taints the canvas).
+function edgeColor(img) {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 16;
+    canvas.height = 16;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, 16, 16);
+    const d = ctx.getImageData(0, 0, 2, 16).data;
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 128) continue;
+      r += d[i];
+      g += d[i + 1];
+      b += d[i + 2];
+      n++;
+    }
+    return n ? [Math.round(r / n), Math.round(g / n), Math.round(b / n)] : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 const STYLE = `
   :host {
     display: block;
@@ -141,8 +180,31 @@ const STYLE = `
     right: 0;
     bottom: 0;
     left: 0;
-    background-size: cover;
-    background-position: center;
+    overflow: hidden;
+    /* no transition: .fade's gradient cannot animate, the two must switch together */
+    background-color: #333333;
+  }
+  /* Cover in full height on the right; the rest of the card takes the
+     colour of the cover's left edge, and .fade blends the two. */
+  .cover {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+  }
+  .img {
+    display: block;
+    height: 100%;
+    width: auto;
+    max-width: none;
+  }
+  .fade {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -1px;
+    width: 45%;
+    background-image: linear-gradient(to right, #333333, rgba(51, 51, 51, 0));
   }
   .bg::after {
     content: "";
@@ -151,7 +213,7 @@ const STYLE = `
     right: 0;
     bottom: 0;
     left: 0;
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.35));
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.25));
   }
   .root {
     position: relative;
@@ -355,12 +417,9 @@ const STYLE = `
   }
 `;
 
-// The <img> is never shown: it only loads the cover so a broken URL can be
-// detected; the cover itself is the background of .bg.
 const TEMPLATE = `
 <ha-card>
-  <div class="bg" hidden></div>
-  <img class="img" alt="" hidden>
+  <div class="bg" hidden><div class="cover"><img class="img" alt=""><div class="fade"></div></div></div>
   <div class="root">
     <div class="head">
       <div class="info" role="button" tabindex="0">
@@ -384,7 +443,7 @@ const TEMPLATE = `
   <div class="progress"><div class="pfill"></div></div>
 </ha-card>`;
 
-const PARTS = ["bg", "img", "root", "info", "title", "artist", "meta", "controls", "power", "prev", "play", "next",
+const PARTS = ["bg", "img", "fade", "root", "info", "title", "artist", "meta", "controls", "power", "prev", "play", "next",
   "volume", "mute", "slider", "sfill", "pct", "progress", "pfill"];
 
 class NowPlayingCard extends HTMLElement {
@@ -481,6 +540,7 @@ class NowPlayingCard extends HTMLElement {
       this._imgFailed = els.img.getAttribute("src");
       this._safeUpdate();
     });
+    els.img.addEventListener("load", () => this._pickColor(els.img.getAttribute("src")));
     els.power.addEventListener("click", () => this._call("turn_on"));
     els.prev.addEventListener("click", () => this._call("media_previous_track"));
     els.next.addEventListener("click", () => this._call("media_next_track"));
@@ -647,7 +707,8 @@ class NowPlayingCard extends HTMLElement {
     const art = !!url && url !== this._imgFailed;
     if (art && e.img.getAttribute("src") !== url) {
       e.img.setAttribute("src", url);
-      e.bg.style.backgroundImage = `url("${url.replace(/["\\\n]/g, "\\$&")}")`;
+      // Known colour right away; otherwise the old one stays until the new cover has loaded
+      if (COLOR_CACHE[url]) this._applyColor(url, COLOR_CACHE[url]);
     }
     e.bg.hidden = !art;
     e.root.classList.toggle("art", art);
@@ -726,6 +787,41 @@ class NowPlayingCard extends HTMLElement {
     this._els.sfill.style.width = `${pct}%`;
     this._els.pct.textContent = `${pct} %`;
     this._els.slider.setAttribute("aria-valuenow", String(pct));
+  }
+
+  // Background colour from the cover's left edge, once the cover has loaded
+  _pickColor(url) {
+    if (!url || !this._els) return;
+    const rgb = COLOR_CACHE[url] || edgeColor(this._els.img);
+    if (rgb) {
+      rememberColor(url, rgb);
+      this._applyColor(url, rgb);
+      return;
+    }
+    // Cross-origin cover: read a CORS copy; works only if its server allows it
+    const probe = document.createElement("img");
+    probe.crossOrigin = "anonymous";
+    probe.addEventListener("load", () => {
+      const c = edgeColor(probe);
+      if (c) rememberColor(url, c);
+      this._applyColor(url, c);
+    });
+    probe.addEventListener("error", () => this._applyColor(url, null));
+    probe.setAttribute("src", url);
+  }
+
+  // rgb null = neutral fallback from the CSS
+  _applyColor(url, rgb) {
+    const e = this._els;
+    if (!e || e.img.getAttribute("src") !== url) return; // cover changed meanwhile
+    if (!rgb) {
+      e.bg.style.backgroundColor = "";
+      e.fade.style.backgroundImage = "";
+      return;
+    }
+    const c = rgb.join(", ");
+    e.bg.style.backgroundColor = `rgb(${c})`;
+    e.fade.style.backgroundImage = `linear-gradient(to right, rgb(${c}), rgba(${c}, 0))`;
   }
 
   _icon(el, name) {

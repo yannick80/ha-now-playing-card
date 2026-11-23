@@ -40,7 +40,7 @@
   #log { font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; color: var(--secondary-text-color); max-height: 160px; overflow: auto; }
   .tools button { margin-right: 8px; }
   /* ?readme: only the cards, for docs/preview.png */
-  body.readme .tools, body.readme h2, body.readme #log, body.readme #c-missing { display: none; }
+  body.readme .tools, body.readme h2, body.readme #log, body.readme #c-missing, body.readme #c-broken { display: none; }
   body.readme { padding: 16px 0 0 16px; }
 </style>
 </head>
@@ -48,6 +48,7 @@
 <div class="tools">
   <button id="theme">Hell/Dunkel</button>
   <button id="nocolormix">color-mix() entfernen</button>
+  <button id="nexttrack">Büro: nächster Titel</button>
 </div>
 
 <h2>12 Spalten (≈ 500 px)</h2>
@@ -68,6 +69,7 @@
   <div class="cell w6" id="c-idle"></div>
   <div class="cell w6" id="c-unavailable"></div>
   <div class="cell w6" id="c-missing"></div>
+  <div class="cell w6" id="c-broken"></div>
 </div>
 
 <h2>Service-Aufrufe</h2>
@@ -84,13 +86,23 @@
     }
   });
 
-  function cover(c1, c2, text) {
-    const s = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">' +
-      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + c1 + '"/>' +
-      '<stop offset="1" stop-color="' + c2 + '"/></linearGradient></defs><rect width="300" height="300" fill="url(#g)"/>' +
-      '<circle cx="210" cy="90" r="70" fill="#fff" opacity=".35"/><circle cx="80" cy="220" r="110" fill="#000" opacity=".25"/>' +
-      '<rect x="40" y="40" width="90" height="90" rx="8" fill="#fff" opacity=".2"/></svg>';
-    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s);
+  // Test covers as real PNGs (canvas), so the card can read their colours.
+  // edge = colour of the left edge, w/h = image format
+  function cover(edge, accent, w, h) {
+    const c = document.createElement("canvas");
+    c.width = w || 300;
+    c.height = h || 300;
+    const x = c.getContext("2d");
+    const g = x.createLinearGradient(0, 0, c.width, 0);
+    g.addColorStop(0, edge);
+    g.addColorStop(1, accent);
+    x.fillStyle = g;
+    x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = "rgba(255,255,255,.35)";
+    x.beginPath(); x.arc(c.width * 0.68, c.height * 0.32, Math.min(c.width, c.height) * 0.22, 0, 7); x.fill();
+    x.fillStyle = "rgba(0,0,0,.25)";
+    x.beginPath(); x.arc(c.width * 0.62, c.height * 0.78, Math.min(c.width, c.height) * 0.3, 0, 7); x.fill();
+    return c.toDataURL("image/png");
   }
 
   const ALL = 1 | 4 | 8 | 16 | 32 | 128 | 256 | 4096 | 16384;
@@ -112,15 +124,18 @@
         media_title: "A Very Long Song Title That Needs Two Lines To Fit Into The Card",
         media_artist: "Some Artist", media_album_name: "The Album", app_name: "Spotify",
         media_duration: 247, media_position: 61, media_position_updated_at: now(),
-        entity_picture: cover("#ff6b6b", "#5f27cd", "♪") } },
+        entity_picture: cover("#7a1f3d", "#ff9f43") } },
       "media_player.kueche": { entity_id: "media_player.kueche", state: "paused", attributes: {
         friendly_name: "Küche", supported_features: ALL, volume_level: 0.6, is_volume_muted: true,
         media_title: "Short Title", media_artist: "Band", source: "AirPlay",
         media_duration: 180, media_position: 90, media_position_updated_at: now(),
-        entity_picture: cover("#1dd1a1", "#0abde3", "♫") } },
+        entity_picture: cover("#e8e2c8", "#0abde3", 300, 420) } },
       "media_player.radio": { entity_id: "media_player.radio", state: "playing", attributes: {
         friendly_name: "Wohnzimmer", supported_features: 1 | 4 | 8 | 4096 | 16384, volume_level: 0.2,
-        media_title: "Deutschlandfunk", media_artist: "Nachrichten", entity_picture: "/broken.png" } },
+        media_title: "Deutschlandfunk", media_artist: "Nachrichten", entity_picture: cover("#1e3799", "#38ada9", 480, 270) } },
+      "media_player.broken": { entity_id: "media_player.broken", state: "playing", attributes: {
+        friendly_name: "Flur", supported_features: ALL, volume_level: 0.3,
+        media_title: "Kein Cover", media_artist: "Defekte Bild-URL", entity_picture: "/broken.png" } },
       "media_player.off": { entity_id: "media_player.off", state: "off", attributes: {
         friendly_name: "Schlafzimmer", supported_features: ALL } },
       "media_player.idle": { entity_id: "media_player.idle", state: "idle", attributes: {
@@ -159,6 +174,21 @@
     cards.push(card);
   }
 
+  // Next track on "Büro": new title and a cover with a different edge colour
+  const TRACKS = [
+    ["Second Song", "Other Artist", "#0b6e4f", "#f8c630", 300, 300],
+    ["Third Song", "Pale Cover", "#f1f2f6", "#ff4757", 300, 300],
+    ["A Very Long Song Title That Needs Two Lines To Fit Into The Card", "Some Artist", "#7a1f3d", "#ff9f43", 300, 300],
+  ];
+  let track = 0;
+  document.getElementById("nexttrack").onclick = () => {
+    const t = TRACKS[track++ % TRACKS.length];
+    const old = hass.states["media_player.buro"];
+    const st = { ...old, attributes: { ...old.attributes, media_title: t[0], media_artist: t[1],
+      media_position: 0, media_position_updated_at: now(), entity_picture: cover(t[2], t[3], t[4], t[5]) } };
+    hass = { ...hass, states: { ...hass.states, "media_player.buro": st } };
+    cards.forEach((c) => { c.hass = hass; });
+  };
   document.getElementById("theme").onclick = () => document.body.classList.toggle("dark");
   document.getElementById("nocolormix").onclick = () => {
     cards.forEach((c) => {
@@ -182,6 +212,7 @@
   add("c-idle", { entity: "media_player.idle", name: "Badezimmer" });
   add("c-unavailable", { entity: "media_player.gone" });
   add("c-missing", { entity: "media_player.nope" });
+  add("c-broken", { entity: "media_player.broken" });
 </script>
 </body>
 </html>
