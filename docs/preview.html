@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Now Playing Card – Preview</title>
+<style>
+  :root {
+    --primary-color: #03a9f4;
+    --text-primary-color: #ffffff;
+    --primary-text-color: #212121;
+    --secondary-text-color: #727272;
+    --secondary-background-color: #e5e5e5;
+    --card-background-color: #ffffff;
+    --divider-color: rgba(0, 0, 0, 0.12);
+    --error-color: #db4437;
+    --page: #fafafa;
+  }
+  body.dark {
+    --primary-text-color: #e1e1e1;
+    --secondary-text-color: #9b9b9b;
+    --secondary-background-color: #282828;
+    --card-background-color: #1c1c1c;
+    --divider-color: rgba(225, 225, 225, 0.12);
+    --page: #111111;
+  }
+  body {
+    margin: 0;
+    padding: 16px;
+    background: var(--page);
+    color: var(--primary-text-color);
+    font-family: Roboto, -apple-system, "Segoe UI", sans-serif;
+  }
+  h2 { font-size: 14px; font-weight: 500; margin: 20px 0 8px; color: var(--secondary-text-color); }
+  .row { display: flex; flex-wrap: wrap; align-items: flex-start; }
+  .cell { margin: 0 16px 16px 0; }
+  .w12 { width: 500px; }
+  .w6 { width: 245px; }
+  .phone { width: 343px; }
+  #log { font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; color: var(--secondary-text-color); max-height: 160px; overflow: auto; }
+  .tools button { margin-right: 8px; }
+</style>
+</head>
+<body>
+<div class="tools">
+  <button id="theme">Hell/Dunkel</button>
+  <button id="nocolormix">color-mix() entfernen</button>
+</div>
+
+<h2>12 Spalten (≈ 500 px)</h2>
+<div class="row">
+  <div class="cell w12" id="c-playing"></div>
+  <div class="cell w12" id="c-paused"></div>
+</div>
+
+<h2>Handy (343 px)</h2>
+<div class="row">
+  <div class="cell phone" id="c-phone"></div>
+  <div class="cell phone" id="c-radio"></div>
+</div>
+
+<h2>Sonderfälle (6 Spalten ≈ 245 px)</h2>
+<div class="row">
+  <div class="cell w6" id="c-off"></div>
+  <div class="cell w6" id="c-idle"></div>
+  <div class="cell w6" id="c-unavailable"></div>
+  <div class="cell w6" id="c-missing"></div>
+</div>
+
+<h2>Service-Aufrufe</h2>
+<div id="log"></div>
+
+<script>
+  // Minimal ha-card stand-in
+  customElements.define("ha-card", class extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: "open" }).innerHTML =
+        "<style>:host{display:block;background:var(--card-background-color);border-radius:12px;" +
+        "border:1px solid var(--divider-color);color:var(--primary-text-color)}</style><slot></slot>";
+    }
+  });
+
+  function cover(c1, c2, text) {
+    const s = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + c1 + '"/>' +
+      '<stop offset="1" stop-color="' + c2 + '"/></linearGradient></defs><rect width="300" height="300" fill="url(#g)"/>' +
+      '<text x="150" y="175" font-size="72" text-anchor="middle" fill="#fff" font-family="sans-serif">' + text + '</text></svg>';
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s);
+  }
+
+  const ALL = 1 | 4 | 8 | 16 | 32 | 128 | 256 | 4096 | 16384;
+  const now = () => new Date().toISOString();
+
+  let hass = {
+    language: "de",
+    locale: { language: "de" },
+    formatEntityState: (s) => ({ off: "Aus", idle: "Untätig", paused: "Pausiert", playing: "Spielt",
+      unavailable: "Nicht verfügbar", on: "An" })[s.state] || s.state,
+    states: {
+      "media_player.buro": { entity_id: "media_player.buro", state: "playing", attributes: {
+        friendly_name: "Büro", supported_features: ALL, volume_level: 0.35, is_volume_muted: false,
+        media_title: "A Very Long Song Title That Needs Two Lines To Fit Into The Card",
+        media_artist: "Some Artist", media_album_name: "The Album", app_name: "Spotify",
+        media_duration: 247, media_position: 61, media_position_updated_at: now(),
+        entity_picture: cover("#ff6b6b", "#5f27cd", "♪") } },
+      "media_player.kueche": { entity_id: "media_player.kueche", state: "paused", attributes: {
+        friendly_name: "Küche", supported_features: ALL, volume_level: 0.6, is_volume_muted: true,
+        media_title: "Short Title", media_artist: "Band", source: "AirPlay",
+        media_duration: 180, media_position: 90, media_position_updated_at: now(),
+        entity_picture: cover("#1dd1a1", "#0abde3", "♫") } },
+      "media_player.radio": { entity_id: "media_player.radio", state: "playing", attributes: {
+        friendly_name: "Wohnzimmer", supported_features: 1 | 4 | 8 | 4096 | 16384, volume_level: 0.2,
+        media_title: "Deutschlandfunk", media_artist: "Nachrichten", entity_picture: "/broken.png" } },
+      "media_player.off": { entity_id: "media_player.off", state: "off", attributes: {
+        friendly_name: "Schlafzimmer", supported_features: ALL } },
+      "media_player.idle": { entity_id: "media_player.idle", state: "idle", attributes: {
+        friendly_name: "Bad", supported_features: ALL, volume_level: 0.5 } },
+      "media_player.gone": { entity_id: "media_player.gone", state: "unavailable", attributes: {
+        friendly_name: "Garten", supported_features: ALL } },
+    },
+  };
+
+  const cards = [];
+  const log = document.getElementById("log");
+
+  hass.callService = (domain, service, data) => {
+    log.textContent = domain + "." + service + " " + JSON.stringify(data) + "\n" + log.textContent;
+    // Simulate HA answering after a short delay
+    setTimeout(() => {
+      const old = hass.states[data.entity_id];
+      const s = { ...old, attributes: { ...old.attributes } };
+      if (service === "volume_set") s.attributes.volume_level = data.volume_level;
+      if (service === "volume_mute") s.attributes.is_volume_muted = data.is_volume_muted;
+      if (service === "media_pause") { s.state = "paused"; s.attributes.media_position = 120; s.attributes.media_position_updated_at = now(); }
+      if (service === "media_play") { s.state = "playing"; s.attributes.media_position_updated_at = now(); }
+      if (service === "media_stop") s.state = "idle";
+      if (service === "turn_on") s.state = "idle";
+      hass = { ...hass, states: { ...hass.states, [data.entity_id]: s } };
+      cards.forEach((c) => { c.hass = hass; });
+    }, 250);
+    return Promise.resolve();
+  };
+
+  function add(id, config) {
+    const card = document.createElement("now-playing-card");
+    card.setConfig({ type: "custom:now-playing-card", ...config });
+    card.hass = hass;
+    document.getElementById(id).appendChild(card);
+    cards.push(card);
+  }
+
+  document.getElementById("theme").onclick = () => document.body.classList.toggle("dark");
+  document.getElementById("nocolormix").onclick = () => {
+    cards.forEach((c) => {
+      const st = c.shadowRoot.querySelector("style");
+      if (st) st.textContent = st.textContent.replace(/^.*color-mix\(.*$/gm, "");
+    });
+  };
+  document.addEventListener("hass-more-info", (e) => {
+    log.textContent = "more-info " + e.detail.entityId + "\n" + log.textContent;
+  });
+</script>
+<script src="../dist/now-playing-card.js"></script>
+<script>
+  add("c-playing", { entity: "media_player.buro" });
+  add("c-paused", { entity: "media_player.kueche" });
+  add("c-phone", { entity: "media_player.buro" });
+  add("c-radio", { entity: "media_player.radio" });
+  add("c-off", { entity: "media_player.off" });
+  add("c-idle", { entity: "media_player.idle", name: "Badezimmer" });
+  add("c-unavailable", { entity: "media_player.gone" });
+  add("c-missing", { entity: "media_player.nope" });
+</script>
+</body>
+</html>
